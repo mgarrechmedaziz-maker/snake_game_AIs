@@ -1,0 +1,1 @@
+direction=directions[(dirIndex+T[i])%4]
