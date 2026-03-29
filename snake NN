@@ -1,0 +1,273 @@
+import math
+import random
+import math
+import pygame
+def nn(inputs, parameters):
+
+    pindex = 0
+    hidden = []
+
+    for h in range(6):
+        s = 0
+        for x in inputs:
+            s += x * parameters[pindex]
+            pindex += 1
+
+        hidden.append(math.tanh(s + parameters[pindex]))
+        pindex += 1
+
+    outputs = []
+
+    for o in range(3):
+        s = 0
+        for h in hidden:
+            s += h * parameters[pindex]
+            pindex += 1
+
+        outputs.append(math.tanh(s + parameters[pindex]))
+        pindex += 1
+
+    return outputs
+
+def think (apple,dir,sn,parameters):
+    inputs=[]
+    inputs.append((apple.x-sn[0].x)/11)
+    inputs.append((apple.y-sn[0].y)/11)
+    if dir=="up" : inputs+=[1,0,0,0]
+    elif dir=="right" : inputs+=[0,1,0,0]
+    elif dir=="left" : inputs+=[0,0,1,0]
+    elif dir=="down" : inputs+=[0,0,0,1]
+    for i in range (-1,2):
+        for j in range (-1,2):
+            if i!=0 or j!=0 :
+                fakesnake=sn[0]+(i,j)
+                if fakesnake in sn : inputs.append(1)
+                else : inputs.append(0)
+
+    outputs=nn(inputs,parameters)
+    directions=[-1,0,1]
+    newdirection=directions[outputs.index(max(outputs))]
+    return newdirection
+
+class snake():
+        def __init__(self,x,y):
+            self.x=x
+            self.y=y
+        def __eq__(self,other):
+            return self.x==other.x and self.y==other.y
+        def __add__(self,other : tuple):
+            return snake(self.x+other[0],self.y+other[1])
+        def __repr__(self):
+            return f"snake: {self.x} , {self.y}"
+def show_genome(parameters, n, seed):
+    import random
+    import pygame
+    random.seed(seed)
+
+    pygame.init()
+    pygame.font.init()
+
+    screen = pygame.display.set_mode((500,500))
+    clock = pygame.time.Clock()
+    score_font = pygame.font.SysFont("Arial",25)
+
+    moves = {
+        "left": (-1,0),
+        "right": (1,0),
+        "up": (0,-1),
+        "down": (0,1)
+    }
+
+    directions = ["right","up","left","down"]
+
+    direction = "left"
+    dirIndex = 0
+
+    sn = [snake(6,6),snake(5,6),snake(4,6),snake(3,6)]
+    score = 0
+    running = True
+
+    class food():
+        def __init__(self):
+            self.spawn()
+
+        def spawn(self):
+            while True:
+                self.x = random.randint(0,11)
+                self.y = random.randint(0,11)
+                if all(b.x != self.x or b.y != self.y for b in sn):
+                    break
+
+    apple = food()
+
+    move_delay = 120
+    move_timer = 0
+    step = 0
+
+    while running and step < n:
+
+        dt = clock.tick(60)
+        move_timer += dt
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+
+        if move_timer >= move_delay:
+
+            move_timer = 0
+            step += 1
+
+            # NN decision
+            dirIndex += think(apple, direction, sn, parameters)
+            direction = directions[(dirIndex) % 4]
+
+            # move snake
+            sn.insert(0, sn[0] + moves[direction])
+
+            # wrap
+            sn[0].x %= 12
+            sn[0].y %= 12
+
+            # apple check
+            if sn[0].x == apple.x and sn[0].y == apple.y:
+                score += 10
+                apple.spawn()
+            else:
+                sn.pop()
+
+            # collision
+            if sn[0] in sn[1:]:
+                print("Snake died")
+                running = False
+
+        # draw
+        screen.fill((0,0,0))
+
+        for r in range(12):
+            for c in range(12):
+                pygame.draw.rect(
+                    screen,
+                    (0,0,255),
+                    (20+c*30,20+r*30,30,30),
+                    1
+                )
+
+        pygame.draw.circle(
+            screen,
+            (0,255,0),
+            (20 + apple.x*30 + 15, 20 + apple.y*30 + 15),
+            13
+        )
+
+        for s in sn:
+            pygame.draw.circle(
+                screen,
+                (255,0,0),
+                (20 + s.x*30 + 15, 20 + s.y*30 + 15),
+                13
+            )
+
+        score_text = score_font.render(f"Score: {score}", True, (255,255,255))
+        screen.blit(score_text,(10,460))
+
+        pygame.display.flip()
+    pygame.quit()
+
+    print("Final score:", score)
+    
+def snake_gm(n,parameters,seed): #T is the array of rotations in the form : ["0","-1","1","1",...]
+    random.seed(seed)
+    score=0
+    moves = {"left" : (-1,0),
+        "right":(1,0),
+        "up" : (0,-1),
+        "down": (0,1)}
+    directions=["right","up","left","down"]
+    direction="left"
+    dirIndex=0
+    sn=[snake(6,6),snake(5,6),snake(4,6),snake(3,6)] 
+    class food():
+        def __init__(self):
+            self.x = 0
+            self.y = 0
+            self.spawn() # Spawn immediately when created
+
+        def spawn(self):
+        # 1. Assume the spot is dirty (invalid) to start the loop
+            valid_spot = False
+        
+        # 2. Keep rolling UNTIL we find a clean spot
+            while not valid_spot:
+                self.x = random.randint(0, 11)
+                self.y = random.randint(0, 11)
+
+                # 3. innocent until proven guilty
+                valid_spot = True 
+
+                # 4. Check against every snake part
+                for body in sn:
+                    # Compare coordinates, not objects!
+                    if body.x == self.x and body.y == self.y:
+                        valid_spot = False # Found a collision!
+                        break # Stop checking, go back to the top and reroll
+                        
+    apple=food()
+    for i in range(n):
+        dirIndex+=think(apple,direction,sn,parameters)
+        direction=directions[(dirIndex)%4]
+        if score >= 1000 - 50 :
+            break
+        sn.insert (0,sn[0] + moves[direction])
+        if sn[0].x == -1 :
+            sn[0].x = 11
+        elif sn[0].x ==12:
+            sn[0].x =0
+        if sn[0].y == -1 :
+            sn[0].y = 11
+        elif sn[0].y ==12:
+            sn[0].y =0
+        if sn[0] == apple :
+            score+=10
+            apple.spawn()
+        else:
+            sn.pop()   
+        if sn[0] in sn[1:]:
+            break
+                 
+    score +=10*math.sqrt(2) - math.sqrt((sn[0].x-apple.x)**2+(sn[0].y-apple.y)**2)
+    return score
+def avg(list):
+    s=0
+    for i in range (len(list)):
+        s+=list[i]
+    return s/len(list)
+
+
+def GA():
+    n=300
+    genomes=[[random.uniform(-2.0,2.0) for _ in range(111)] for _ in range(100)]
+    for tries in range(200):
+        seed1= random.randint(0,10**9)
+        seed3= random.randint(0,10**9)
+        seed2= random.randint(0,10**9)
+        scores=[avg([snake_gm(n,genome,seed1),snake_gm(n,genome,seed2),snake_gm(n,genome,seed3)]) for genome in genomes]
+        random.seed()
+        BestGenome=genomes[scores.index(max(scores))]
+        if tries % 50==0 :
+            show_genome(BestGenome, n, seed1)
+        if tries %10 ==0 : 
+            print(tries)
+            print(max(scores))
+        genomes[0]=BestGenome.copy()
+        for j in range(1,len(genomes)):
+            genome= BestGenome.copy()
+            for i in range(111):
+                if random.random() < 0.3:
+                    genome[i] += random.uniform(-2.0,2.0)
+            genomes[j]=genome
+        #if tries % 10 ==1 : n+=10
+
+GA()
+        

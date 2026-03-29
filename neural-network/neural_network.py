@@ -133,7 +133,6 @@ class MLP():
     
 #a=Value(3.0)
 #b=Value(2.0)
-"""
 n=MLP(3,[3,2,1])
 xs= ([2.0,-4.0,6.0],
      [1.0,-6.0,2.0],
@@ -153,4 +152,4 @@ for i in range(20):
         param.data += -0.07 * param.grad
     print(i,loss.data)
 print(n.layers[0].neurons[0].w[0].grad)
-#draw_dot(loss).render('computational_graph', view=True)"""
+#draw_dot(loss).render('computational_graph', view=True)
